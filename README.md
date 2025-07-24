@@ -15,36 +15,47 @@ When a node creates or joins a ring, it spawns multiple threads which are respon
 ring, sending acknowledgement and other operations , doing stabilization tasks to ensure correct finger table entries, successor 
 and predecessor pointers and a Successor list.
 
-Each node contains m(48) entries in it's finger table.
+Each node in the network is assigned a unique identifier by hashing its ip:port using the SHA-1 algorithm. The identifier space is bounded within 2^m, with m = 48 in this implementation—allowing up to 2^48 unique node IDs.
 
-Each node also maintains a successor list having r(10) entries. This list finds it's use when a node's  successor leaves the ring,
-the node immediately assigns the next entry in the successor list as it's successor.
+Nodes can either create a new DHT ring or join an existing one by connecting to another node's IP and port.
 
-Each node regularly asks for acknowledgement from it's successor and predecessor to know that they are still present in the ring. If
-no acknowledgement is received then they have left the ring and stabilization is done accordingly
+When a node joins or creates a ring, it starts several background threads. These threads handle:
 
-Each node keeps a map for storing key value pairs in it. When a key is entered, it is also assigned a unique ID, then it is stored in 
-a node whose ID is just greater than this key's ID
+  *  Communication with other nodes
+    
+  *  Stabilization procedures to update routing structures
+    
+  *  Maintaining links to immediate neighbors (successor and predecessor)
+    
+  *  Updating and managing the finger table (used for efficient lookups)
+    
+  *  Managing a successor list (used for fault tolerance)
 
-When a node newly joins the ring, it gets all those keys from it's successor which should now belong to it
+Each node's finger table contains m = 48 entries. In addition, a successor list with r = 10 entries helps a node quickly recover if its successor leaves the network.
 
-When a node leaves the ring, it transfers all it's keys to it's successor
+Nodes periodically ping their successors and predecessors to check connectivity. If a neighbor is unresponsive, stabilization logic ensures the node reconnects appropriately within the ring.
 
-m has been set to 48 in this implementation that means a maximum of 2^48 nodes can join the ring
+For data storage, each node maintains a key-value store. When a key-value pair is inserted:
 
-## Files ##
+The key is hashed.
 
-main.cpp is the main file
+The data is routed to and stored on the appropriate node whose ID is equal to or immediately follows the key's hash.
 
-All important functions are inside the file functions.cpp
+When a new node joins the ring, it takes ownership of keys that now fall under its responsibility by requesting those from its successor. Conversely, if a node leaves, it transfers its keys to its successor before exiting the ring.
 
-A class named NodeInformation is made which contains all the information of a Node and all the functions which every node performs
-to maintain correct information about the ring. 
 
-Another class SocketAndPort is made which contains
-all the information about socket ,ip address and port number. Object of class SocketAndPort is inside NodeInformation class
 
-Another class HelperClass is made which contains all helper functions which are required by a node to perform various tasks
+## File Structure ##
+
+* main.cpp: Entry point of the application
+
+* functions.cpp: Contains core operational logic
+
+* NodeInformation class: Encapsulates a node’s attributes and the core functionality needed to participate in and maintain the DHT ring
+
+* SocketAndPort class: Manages socket creation and connection info; used within NodeInformation
+
+* HelperClass: Provides utility functions to assist with hashing, comparisons, and communication
 
 
 ## Supported Commands ##
